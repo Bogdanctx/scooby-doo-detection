@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scooby-Doo Character Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-teal-700 mb-2">Scooby-Doo Detector</h1>
+            <p class="text-slate-600">Upload an image to identify the Mystery Inc. gang!</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+            
+            <div class="mb-8">
+                <form id="uploadForm" class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg p-10 hover:bg-slate-50 transition-colors cursor-pointer relative" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" class="hidden" accept="image/*" name="image">
+                    <div id="uploadPrompt" class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p class="font-medium text-lg">Click to upload an image</p>
+                        <p class="text-sm text-slate-400 mt-1">JPG, PNG supported</p>
+                    </div>
+                    <img id="previewImage" class="hidden max-h-80 rounded shadow-sm max-w-full" alt="Preview">
+                </form>
+                
+                <div class="flex justify-center mt-6">
+                    <button id="detectBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-full shadow-md transition-transform transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed hidden">
+                        <span class="flex items-center">
+                            Detect Characters
+                        </span>
+                    </button>
+                    <div id="loadingIndicator" class="hidden flex items-center space-x-2 text-teal-700 font-semibold mt-2">
+                        <div class="loader"></div>
+                        <span>Analyzing Mystery...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultsSection" class="hidden space-y-10 border-t border-slate-200 pt-8">
+                
+                <div>
+                    <h2 class="text-2xl font-bold mb-4 text-slate-700 border-l-4 border-teal-500 pl-3">Detection Result</h2>
+                    <div class="bg-slate-50 p-4 rounded-lg flex justify-center">
+                        <img id="annotatedImage" class="max-w-full rounded shadow-lg" alt="Result with bounding boxes">
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-2xl font-bold mb-4 text-slate-700 border-l-4 border-orange-500 pl-3">Found Characters</h2>
+                    <div id="cropsContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const previewImage = document.getElementById('previewImage');
+        const detectBtn = document.getElementById('detectBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultsSection = document.getElementById('resultsSection');
+        const cropsContainer = document.getElementById('cropsContainer');
+        const annotatedImage = document.getElementById('annotatedImage');
+
+        // Handle File Selection
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewImage.classList.remove('hidden');
+                    uploadPrompt.classList.add('hidden');
+                    detectBtn.classList.remove('hidden');
+                    // Reset results if any
+                    resultsSection.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle Detection
+        detectBtn.addEventListener('click', async function() {
+            if (!fileInput.files[0]) return;
+
+            // UI State: Loading
+            detectBtn.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            try {
+                // Call the API endpoint
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                displayResults(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Something went wrong detecting the ghosts!');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                detectBtn.classList.remove('hidden');
+            }
+        });
+
+        function displayResults(data) {
+            // 1. Show the annotated image
+            annotatedImage.src = `data:image/png;base64,${data.detections}`;
+
+            // 2. Render crops
+            cropsContainer.innerHTML = ''; 
+
+            if (data.patches && data.patches.length > 0) {
+                data.patches.forEach((patch, index) => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow relative";
+                    
+                    // Unique ID for the dropdown logic
+                    const cardId = `card-${index}`;
+
+                    card.innerHTML = `
+                        <div class="h-40 bg-slate-200 overflow-hidden flex items-center justify-center relative">
+                            <img src="data:image/png;base64,${patch.image}" class="object-cover h-full w-full" alt="${patch.name}">
+                        </div>
+                        <div class="p-4 text-center">
+                            <h3 class="font-bold text-lg text-slate-800">${patch.name}</h3>
+                            
+                            <div class="text-xs text-slate-500 mt-1 mb-3">
+                                Detect: ${(patch.detection_score * 100).toFixed(0)}% | Recog: ${(patch.recognition_score * 100).toFixed(0)}%
+                            </div>
+
+                            <div class="border-t pt-3 mt-2">
+                                <p class="text-xs text-slate-400 mb-2">Is this correct?</p>
+                                
+                                <div id="${cardId}-buttons" class="flex justify-center gap-2">
+                                    <button onclick="handleCorrect('${cardId}')" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-sm font-medium transition">
+                                        Yes
+                                    </button>
+                                    <button onclick="showCorrectionUI('${cardId}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm font-medium transition">
+                                        No
+                                    </button>
+                                </div>
+
+                                <div id="${cardId}-correction" class="hidden mt-2">
+                                    <select id="${cardId}-select" class="w-full text-sm border-slate-300 rounded p-1 mb-2 bg-white border">
+                                        <option value="" disabled selected>Select error type...</option>
+                                        
+                                        <option value="NOT_A_FACE" class="font-bold text-red-600">❌ Not a face (Background)</option>
+                                        
+                                        <option disabled>──────────</option>
+                                        <option disabled>It is actually...</option>
+                                        <option value="Fred">Fred</option>
+                                        <option value="Daphne">Daphne</option>
+                                        <option value="Velma">Velma</option>
+                                        <option value="Shaggy">Shaggy</option>
+                                        <option value="Scooby">Scooby</option>
+                                        <option value="Unknown">Unknown</option>
+                                    </select>
+                                    <button onclick="submitFeedback('${cardId}', '${patch.image}')" class="w-full bg-slate-700 text-white text-sm py-1 rounded hover:bg-slate-800 transition">
+                                        Submit Correction
+                                    </button>
+                                    <button onclick="cancelCorrection('${cardId}')" class="text-xs text-slate-400 underline mt-2">Cancel</button>
+                                </div>
+                                
+                                <div id="${cardId}-thanks" class="hidden mt-2 text-green-600 text-sm font-bold">
+                                    Feedback Saved!
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    cropsContainer.appendChild(card);
+                });
+            } else {
+                cropsContainer.innerHTML = '<p class="col-span-full text-center text-slate-500 italic">No characters detected.</p>';
+            }
+
+            resultsSection.classList.remove('hidden');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Helper Functions for Feedback ---
+
+        // Updated handleCorrect function
+        async function handleCorrect(cardId, imageBase64, detectedName) {
+            // 1. Update UI immediately (Instant Feedback)
+            document.getElementById(`${cardId}-buttons`).classList.add('hidden');
+            document.getElementById(`${cardId}-thanks`).classList.remove('hidden');
+            
+            // 2. Send to backend silently
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: imageBase64,
+                        correct_label: detectedName // Send the current name as the "correct" one
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error("Failed to save positive sample");
+                } else {
+                    console.log(`Saved positive sample for ${detectedName}`);
+                }
+            } catch (error) {
+                console.error("Error sending positive feedback:", error);
+            }
+        }
+
+        function showCorrectionUI(cardId) {
+            document.getElementById(`${cardId}-buttons`).classList.add('hidden');
+            document.getElementById(`${cardId}-correction`).classList.remove('hidden');
+        }
+
+        function cancelCorrection(cardId) {
+            document.getElementById(`${cardId}-correction`).classList.add('hidden');
+            document.getElementById(`${cardId}-buttons`).classList.remove('hidden');
+        }
+
+        async function submitFeedback(cardId, imageBase64) {
+            const select = document.getElementById(`${cardId}-select`);
+            const correctLabel = select.value;
+
+            if (!correctLabel) {
+                alert("Please select an error type first.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: imageBase64,
+                        correct_label: correctLabel
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById(`${cardId}-correction`).classList.add('hidden');
+                    document.getElementById(`${cardId}-thanks`).classList.remove('hidden');
+                    console.log("Feedback saved for retraining!");
+                } else {
+                    alert("Failed to save feedback.");
+                }
+            } catch (error) {
+                console.error("Feedback error:", error);
+                alert("Error sending feedback.");
+            }
+        }
+    </script>
+</body>
+</html>
