@@ -8,7 +8,10 @@ class FaceRecognition(torch.nn.Module):
     def __init__(self, num_classes):
         super(FaceRecognition, self).__init__()
 
-        self.weights = torch.tensor([1.198, 1.082, 1.077, 0.897]).to(Parameters.DEVICE)
+        # Class weights to handle class imbalance
+        # labels_map = {"daphne": 0, "fred": 1, "shaggy": 2, "velma": 3, "unknown": 4}
+
+        self.weights = torch.tensor([0.96, 0.87, 0.86, 0.72, 4.05]).to(Parameters.DEVICE)
         self.criterion = torch.nn.CrossEntropyLoss(weight=self.weights)
 
         self.optimizer = None
@@ -65,11 +68,11 @@ class FaceRecognition(torch.nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         
-        EPOCHS = 30
+        EPOCHS = 50
         for epoch in range(EPOCHS):
             self.train()
 
-            print(f"Starting epoch {epoch+1}/{EPOCHS}")
+            print(f"Starting epoch {epoch+1}/{EPOCHS}", flush=True)
 
             running_loss = 0.0
             correct = 0
@@ -100,13 +103,13 @@ class FaceRecognition(torch.nn.Module):
             self.training_losses.append(epoch_loss)
             self.training_accuracies.append(epoch_accuracy)
 
-            print(f"Training Loss: {epoch_loss:.4f}, Training Accuracy: {epoch_accuracy:.4f}")
+            print(f"Training Loss: {epoch_loss:.4f}, Training Accuracy: {epoch_accuracy:.4f}", flush=True)
 
             if validation_dataset is not None:
                 val_accuracy, val_loss = self.evaluate(validation_dataset, print_report=(epoch == EPOCHS - 1))
                 self.validation_accuracies.append(val_accuracy)
                 self.validation_losses.append(val_loss)
-                print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
+                print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}", flush=True)
 
 
     def evaluate(self, dataset, print_report=False):
@@ -146,7 +149,7 @@ class FaceRecognition(torch.nn.Module):
         avg_loss = running_loss / total_samples
 
         if print_report:
-            print(classification_report(y_true, y_pred, digits=4))
+            print(classification_report(y_true, y_pred, digits=4), flush=True)
 
         return accuracy, avg_loss
     

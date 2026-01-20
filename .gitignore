@@ -1,3 +1,7 @@
 __pycache__
 collected_positives
 collected_negatives
+train
+validation_images
+negatives
+positives

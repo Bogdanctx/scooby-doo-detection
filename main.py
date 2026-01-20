@@ -1,17 +1,16 @@
 import io
 import base64
-import sys
 import os
 import time
-import numpy as np
+import sys
 
-# Add the SDNet folder to system path to allow imports of modules inside it
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "SDNet"))
 
+import numpy as np
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from SDNet import SDNet  # Ensure correct import based on your folder structure
+from SDNet.scooby_doo_network import SDNet
 from PIL import Image
 
 from pydantic import BaseModel
@@ -20,8 +19,12 @@ class FeedbackData(BaseModel):
     image_base64: str
     correct_label: str
 
+class RetrainMode(BaseModel):
+    model: str  # 'all', 'detector', 'recognizer'
+
 app = FastAPI()
 sdnet = SDNet()
+sdnet.load_models()
 
 # Enable CORS so the frontend can communicate with the backend
 app.add_middleware(
@@ -73,6 +76,21 @@ async def detect_characters(image: UploadFile = File(...)):
 
     return response_data
 
+@app.post("/api/retrain")
+async def retrain_models(model: RetrainMode):
+    try:
+        if model.model == "all":
+            sdnet.train()
+        elif model.model == "detector":
+            sdnet.train_detector()
+        elif model.model == "recognizer":
+            sdnet.train_recognizer()
+
+        return {"status": "success", "message": "Retraining initiated."}
+    except Exception as e:
+        print(f"Error during retraining: {e}")
+        return {"status": "error", "message": str(e)}
+
 @app.post("/api/feedback")
 async def save_feedback(data: FeedbackData):
     try:
@@ -80,7 +98,7 @@ async def save_feedback(data: FeedbackData):
             save_dir = "./SDNet/collected_negatives"
         else:
             # save mislabeled faces
-            save_dir = "./SDNet/collected_positives/"
+            save_dir = "./SDNet/collected_positives"
             
         os.makedirs(save_dir, exist_ok=True)
 
@@ -107,3 +125,7 @@ async def save_feedback(data: FeedbackData):
         return {"status": "error", "message": str(e)}
 
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

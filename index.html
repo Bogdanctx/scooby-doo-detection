@@ -72,6 +72,18 @@
                 </div>
 
             </div>
+
+            <div>
+                <Button type="button" onclick="retrainModels('all')" class="mt-6 w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 px-4 rounded-full shadow-sm transition-transform transform active:scale-95">
+                    Retrain all model
+                </Button>
+                <Button type="button" onclick="retrainModels('detector')" class="mt-6 w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 px-4 rounded-full shadow-sm transition-transform transform active:scale-95">
+                    Retrain detection model
+                </Button>
+                <Button type="button" onclick="retrainModels('recognizer')" class="mt-6 w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 px-4 rounded-full shadow-sm transition-transform transform active:scale-95">
+                    Retrain recognition model
+                </Button>
+            </div>
         </div>
     </div>
 
@@ -139,6 +151,22 @@
             }
         });
 
+        async function retrainModels(model_name) {
+            const response = await fetch('/api/retrain', { 
+                method: 'POST',
+                body: JSON.stringify({ model: model_name }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                console.log("Retraining initiated!");
+            } else {
+                alert("Failed to initiate retraining.");
+            }
+        }
+
         function displayResults(data) {
             // 1. Show the annotated image
             annotatedImage.src = `data:image/png;base64,${data.detections}`;
@@ -169,7 +197,7 @@
                                 <p class="text-xs text-slate-400 mb-2">Is this correct?</p>
                                 
                                 <div id="${cardId}-buttons" class="flex justify-center gap-2">
-                                    <button onclick="handleCorrect('${cardId}')" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-sm font-medium transition">
+                                    <button onclick="handleCorrect('${cardId}', '${patch.image}', '${patch.name}')" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-sm font-medium transition">
                                         Yes
                                     </button>
                                     <button onclick="showCorrectionUI('${cardId}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm font-medium transition">

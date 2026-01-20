@@ -2,6 +2,33 @@ import numpy as np
 
 class Utilities:
     @staticmethod
+    def move_collected_samples():
+        import os
+        import shutil
+
+        os.makedirs("./SDNet/collected_positives/", exist_ok=True)
+        os.makedirs("./SDNet/collected_negatives/", exist_ok=True)
+
+        collected_positives_dir = "./SDNet/collected_positives/"
+        collected_negatives_dir = "./SDNet/collected_negatives/"
+
+        positives_dir = "./SDNet/positives/"
+        negatives_dir = "./SDNet/negatives/"
+
+        os.makedirs(positives_dir, exist_ok=True)
+        os.makedirs(negatives_dir, exist_ok=True)
+
+        for filename in os.listdir(collected_positives_dir):
+            src_path = os.path.join(collected_positives_dir, filename)
+            dst_path = os.path.join(positives_dir, filename)
+            shutil.move(src_path, dst_path)
+
+        for filename in os.listdir(collected_negatives_dir):
+            src_path = os.path.join(collected_negatives_dir, filename)
+            dst_path = os.path.join(negatives_dir, filename)
+            shutil.move(src_path, dst_path)
+
+    @staticmethod
     def intersection_over_union(bbox_a, bbox_b):
         x_a = max(bbox_a[0], bbox_b[0])
         y_a = max(bbox_a[1], bbox_b[1])

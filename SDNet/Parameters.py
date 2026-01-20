@@ -4,14 +4,13 @@ class Parameters:
     TRAIN_DETECTION_MODEL = False
     TRAIN_RECOGNITION_MODEL = False
 
-    PATH_TRAIN_INPUT = "./antrenare"
-    PATH_TEST_INPUT = "./testare"
+    PATH_TRAIN_INPUT = "./SDNet/train"
+    PATH_TEST_INPUT = "./SDNet/evaluation"
 
-    PATH_POSITIVE_SAMPLES = "./positive_samples"
-    PATH_NEGATIVE_SAMPLES = "./negative_samples"
-    PATH_MINED_HARD_NEGATIVES = "./mined_hard_negatives"
-    PATH_FACIAL_DETECTOR = "./facial_detector_model.pkl"
-    PATH_FACIAL_RECOGNITION = "./facial_recognition_model.pkl"
+    PATH_POSITIVE_SAMPLES = "./SDNet/positives"
+    PATH_NEGATIVE_SAMPLES = "./SDNet/negatives"
+    PATH_FACIAL_DETECTOR = "./SDNet/models/face_detector.pkl"
+    PATH_FACIAL_RECOGNITION = "./SDNet/models/face_recognizer.pkl"
 
     EPOCHS = 6
     BATCH_SIZE = 512
