@@ -54,6 +54,10 @@ class SDNet:
         torch.save(self.face_detector.state_dict(), f"{Parameters.PATH_FACIAL_DETECTOR}")
         print(f"[INFO] Face Detector model saved to {Parameters.PATH_FACIAL_DETECTOR}.")
 
+        print("[INFO] Reloading models...")
+        self.load_models()
+        print("[INFO] Detector training pipeline finished successfully.")
+
     def train_recognizer(self):
         print("[INFO] Preparing data for Face Recognizer training...")
         positives = [os.path.join(Parameters.PATH_POSITIVE_SAMPLES, p) for p in os.listdir(Parameters.PATH_POSITIVE_SAMPLES)]
@@ -88,6 +92,10 @@ class SDNet:
         torch.save(self.face_recognizer.state_dict(), f"{Parameters.PATH_FACIAL_RECOGNITION}")
         print(f"[INFO] Face Recognizer model saved to {Parameters.PATH_FACIAL_RECOGNITION}.")
 
+        print("[INFO] Reloading models...")
+        self.load_models()
+        print("[INFO] Recognizer training pipeline finished successfully.")        
+
     def train(self):
         print("[INFO] Starting full training pipeline...")
         # Move collected samples to training folders
@@ -118,10 +126,6 @@ class SDNet:
         # Train recognizer
         print("[INFO] Step 4: Training recognizer...")
         self.train_recognizer()
-
-        print("[INFO] Reloading models specific to device...")
-        self.load_models()
-        print("[INFO] Training pipeline finished successfully.")
 
     def evaluate(self):
         validation_folder = f"{Parameters.PATH_TEST_INPUT}"

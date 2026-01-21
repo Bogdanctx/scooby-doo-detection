@@ -16,6 +16,7 @@ function App() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null);
+    const [isRetraining, setIsRetraining] = useState<boolean>(false);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
@@ -30,6 +31,19 @@ function App() {
             reader.readAsDataURL(file);
         }
     };
+
+    const handleRetrainModels = async (model: string) => {
+        try {
+            setIsRetraining(true);
+            await axios.post(`http://localhost:8000/api/retrain/${model}`);
+            alert(`Retraining started for ${model} model(s). Check backend console for progress.`);
+        } catch (error) {
+            console.error('Error during retraining:', error);
+            alert("Error during retraining. Check backend console.");
+        } finally {
+            setIsRetraining(false);
+        }
+    }
 
     const detectCharacters = async () => {
         if (!selectedFile) {
@@ -189,11 +203,54 @@ function App() {
                             </Grid>
                         </Box>
                     </Box>
-                )} : { detectionResult?.patches.length === 0 && (
+                )}
+                
+                { detectionResult?.patches.length === 0 && (
                     <Typography variant="body1" align="center" sx={{ color: '#64748b', fontStyle: 'italic', mt: 4 }}>
                         No characters were detected in this image.
                     </Typography>
                 )}
+
+                {/* Retrain models section */}
+                <Box sx={{ textAlign: 'center' }}>
+                    <Typography 
+                        variant="h4" 
+                        sx={{ color: '#0e7490', fontWeight: 'bold' }}
+                    >
+                        Dev Actions
+                    </Typography>
+                    {isRetraining && (
+                        <Typography variant="body2" sx={{ color: '#f97316', mt: 1 }}>
+                            Check backend console for retraining progress...
+                        </Typography>
+                    )}
+
+                    {isRetraining === false && (
+                        <Box display={"flex"} flexDirection={"column"} gap={2} alignItems="center" mt={2} mb={4}>
+                            <Button 
+                                variant='contained' 
+                                sx={{ backgroundColor: '#b6383eff', '&:hover': { backgroundColor: '#641e21ff' } }}
+                                onClick={() => handleRetrainModels('full')}
+                            >
+                                Retrain models (FULL PIPELINE)
+                            </Button>
+                            <Button 
+                                variant='contained' 
+                                sx={{ backgroundColor: '#ca7f1dff', '&:hover': { backgroundColor: '#8b5917ff' } }}
+                                onClick={() => handleRetrainModels('detection')}
+                            >
+                                Retrain detection model
+                            </Button>
+                            <Button 
+                                variant='contained' 
+                                sx={{ backgroundColor: '#4f8324ff', '&:hover': { backgroundColor: '#315216ff' } }}
+                                onClick={() => handleRetrainModels('recognition')}
+                            >
+                                Retrain recognition model
+                            </Button>
+                        </Box>
+                    )}
+                </Box>
 			</Box>
 
 			{/* Footer */}

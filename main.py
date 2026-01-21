@@ -77,20 +77,34 @@ async def detect_characters(image: UploadFile):
 
     return response_data
 
-@app.post("/api/retrain")
-async def retrain_models(model: RetrainMode):
+@app.post("/api/retrain/full")
+async def retrain_models():
     try:
-        if model.model == "all":
-            sdnet.train()
-        elif model.model == "detector":
-            sdnet.train_detector()
-        elif model.model == "recognizer":
-            sdnet.train_recognizer()
-
-        return {"status": "success", "message": "Retraining initiated."}
+        sdnet.train_detector()
+        sdnet.train_recognizer()
+        return {"status": "success", "message": "Full model retraining initiated."}
     except Exception as e:
-        print(f"Error during retraining: {e}")
+        print(f"Error during full model retraining: {e}")
         return {"status": "error", "message": str(e)}
+
+@app.post("/api/retrain/detection")
+async def retrain_detection_model():
+    try:
+        sdnet.train_detector()
+        return {"status": "success", "message": "Detection model retraining initiated."}
+    except Exception as e:
+        print(f"Error during detection model retraining: {e}")
+        return {"status": "error", "message": str(e)}
+    
+@app.post("/api/retrain/recognition")
+async def retrain_recognition_model():
+    try:
+        sdnet.train_recognizer()
+        return {"status": "success", "message": "Recognition model retraining initiated."}
+    except Exception as e:
+        print(f"Error during recognition model retraining: {e}")
+        return {"status": "error", "message": str(e)}
+
 
 @app.post("/api/feedback")
 async def save_feedback(data: FeedbackData):
