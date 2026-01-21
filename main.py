@@ -3,6 +3,7 @@ import base64
 import os
 import time
 import sys
+import uuid
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "SDNet"))
 
@@ -51,7 +52,7 @@ def image_to_base64(image_obj):
     return raw_base64
 
 @app.post("/api/detect")
-async def detect_characters(image: UploadFile = File(...)):
+async def detect_characters(image: UploadFile):
     # Read the uploaded image
     contents = await image.read()
     original_img = Image.open(io.BytesIO(contents)).convert("RGB")
@@ -102,17 +103,11 @@ async def save_feedback(data: FeedbackData):
             
         os.makedirs(save_dir, exist_ok=True)
 
-        # decode and save
-        if "," in data.image_base64:
-            _, encoded = data.image_base64.split(",", 1)
-        else:
-            encoded = data.image_base64
-
-        image_data = base64.b64decode(encoded)
+        image_data = base64.b64decode(data.image_base64)
         image = Image.open(io.BytesIO(image_data))
 
         # use timestamp to ensure unique filenames
-        filename = f"{data.correct_label.lower()}_{int(time.time())}.png"
+        filename = f"{data.correct_label.lower()}_{uuid.uuid4()}.png"
         file_path = os.path.join(save_dir, filename)
 
         image.save(file_path, "PNG")
