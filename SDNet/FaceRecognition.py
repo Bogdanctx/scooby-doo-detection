@@ -2,7 +2,7 @@ import torch
 from Parameters import Parameters
 from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader
-
+from Logger import Logger
 
 class FaceRecognition(torch.nn.Module):
     def __init__(self, num_classes):
@@ -72,7 +72,7 @@ class FaceRecognition(torch.nn.Module):
         for epoch in range(EPOCHS):
             self.train()
 
-            print(f"Starting epoch {epoch+1}/{EPOCHS}", flush=True)
+            Logger.log(f"Starting epoch {epoch+1}/{EPOCHS}")
 
             running_loss = 0.0
             correct = 0
@@ -103,13 +103,13 @@ class FaceRecognition(torch.nn.Module):
             self.training_losses.append(epoch_loss)
             self.training_accuracies.append(epoch_accuracy)
 
-            print(f"Training Loss: {epoch_loss:.4f}, Training Accuracy: {epoch_accuracy:.4f}", flush=True)
+            Logger.log(f"Training Loss: {epoch_loss:.4f}, Training Accuracy: {epoch_accuracy:.4f}")
 
             if validation_dataset is not None:
                 val_accuracy, val_loss = self.evaluate(validation_dataset, print_report=(epoch == EPOCHS - 1))
                 self.validation_accuracies.append(val_accuracy)
                 self.validation_losses.append(val_loss)
-                print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}", flush=True)
+                Logger.log(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
 
 
     def evaluate(self, dataset, print_report=False):
@@ -149,7 +149,7 @@ class FaceRecognition(torch.nn.Module):
         avg_loss = running_loss / total_samples
 
         if print_report:
-            print(classification_report(y_true, y_pred, digits=4), flush=True)
+            Logger.log(classification_report(y_true, y_pred, digits=4))
 
         return accuracy, avg_loss
     

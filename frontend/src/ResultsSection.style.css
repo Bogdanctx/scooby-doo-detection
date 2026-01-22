@@ -1,0 +1,66 @@
+/* ResultsSection.style.css */
+
+/* Main Container */
+#detection-result {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+/* Section Titles */
+.section-header {
+    margin-bottom: 1.5rem !important;
+    font-weight: 700 !important;
+    padding-left: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+#detection-result-title {
+    color: #0f766e; /* Teal */
+    border-left: 5px solid #0f766e;
+}
+
+#found-characters-title {
+    color: #c2410c; /* Dark Orange */
+    border-left: 5px solid #c2410c;
+    margin-top: 3rem !important;
+}
+
+/* Image Container */
+#detection-result-image {
+    padding: 1rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+#annotated-image {
+    max-width: 100%;
+    max-height: 650px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    transition: transform 0.3s ease;
+}
+
+#annotated-image:hover {
+    transform: scale(1.01);
+}
+
+#character-cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}

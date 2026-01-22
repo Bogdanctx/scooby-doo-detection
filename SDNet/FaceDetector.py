@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from Parameters import Parameters
 from sklearn.metrics import classification_report
+from Logger import Logger
 
 class FaceDetector(torch.nn.Module):
     def __init__(self):
@@ -62,7 +63,7 @@ class FaceDetector(torch.nn.Module):
 
         for epoch in range(Parameters.EPOCHS):
             self.train()
-            print(f"Epoch {epoch+1}/{Parameters.EPOCHS}", flush=True)
+            Logger.log(f"Epoch {epoch+1}/{Parameters.EPOCHS}")
 
             correct = 0
             running_loss = 0.0
@@ -107,11 +108,11 @@ class FaceDetector(torch.nn.Module):
 
             running_loss = running_loss / len(train_dataset)
             train_accuracy = correct / len(train_dataset)
-            print(f"Training Loss: {running_loss:.4f} | Training Accuracy: {train_accuracy:.4f}", flush=True)
+            Logger.log(f"Training Loss: {running_loss:.4f} | Training Accuracy: {train_accuracy:.4f}")
         
             if validation_dataset is not None:
                 val_accuracy, val_loss = self.evaluate(validation_dataset, print_report=(epoch == Parameters.EPOCHS - 1))
-                print(f"Validation Loss: {val_loss:.4f} | Validation Accuracy: {val_accuracy:.4f}", flush=True)
+                Logger.log(f"Validation Loss: {val_loss:.4f} | Validation Accuracy: {val_accuracy:.4f}")
 
 
     def evaluate(self, dataset, print_report=False):
@@ -151,8 +152,8 @@ class FaceDetector(torch.nn.Module):
         running_loss = running_loss / len(dataset)
 
         if print_report:
-            print("[INFO] Classification Report:", flush=True)
-            print(classification_report(y_true, y_pred, digits=4), flush=True)
+            Logger.log("[INFO] Classification Report:")
+            Logger.log(classification_report(y_true, y_pred, digits=4))
 
         return accuracy, running_loss
 

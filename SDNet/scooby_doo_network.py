@@ -13,28 +13,26 @@ from FaceDetectorImageDataset import FaceDetectorImageDataset
 from FaceRecognitionImageDataset import FaceRecognitionImageDataset
 from sklearn.model_selection import train_test_split
 from HardNegatives import HardNegativeMiner
+from Logger import Logger
 
 class SDNet:
     def __init__(self):
-        print("[INFO] Initializing SDNet...")
         self.face_detector = FaceDetector()
         self.face_recognizer = FaceRecognition(5)
 
         self.labels_map = {"daphne": 0, "fred": 1, "shaggy": 2, "velma": 3, "unknown": 4}
 
     def load_models(self):
-        print(f"[INFO] Loading models from {Parameters.PATH_FACIAL_DETECTOR} and {Parameters.PATH_FACIAL_RECOGNITION}...")
         self.face_detector.load_state_dict(torch.load(Parameters.PATH_FACIAL_DETECTOR, map_location=Parameters.DEVICE))
         self.face_recognizer.load_state_dict(torch.load(Parameters.PATH_FACIAL_RECOGNITION, map_location=Parameters.DEVICE))
-        print("[INFO] Models loaded successfully.")
 
     
     def train_detector(self):
-        print("[INFO] Preparing data for Face Detector training...")
+        Logger.log("Preparing data for Face Detector training...")
         positives = [os.path.join(f"{Parameters.PATH_POSITIVE_SAMPLES}/", p) for p in os.listdir(Parameters.PATH_POSITIVE_SAMPLES)]
         negatives = [os.path.join(Parameters.PATH_NEGATIVE_SAMPLES, n) for n in os.listdir(Parameters.PATH_NEGATIVE_SAMPLES)]
 
-        print(f"[INFO] Training Face Detector with {len(positives)} positives and {len(negatives)} negatives.")
+        Logger.log(f"Training Face Detector with {len(positives)} positives and {len(negatives)} negatives.")
 
         dataset = [(path, 0.95) for path in positives] + [(path, 0.05) for path in negatives]
 
@@ -44,25 +42,25 @@ class SDNet:
         self.detector_dataset = FaceDetectorImageDataset(train_paths, augment=True)
         self.detector_validation_dataset = FaceDetectorImageDataset(validation_paths)
 
-        print("[INFO] Starting Face Detector training loop (fit)...")
+        Logger.log("[INFO] Starting Face Detector training loop (fit)...")
         self.face_detector.fit(train_dataset=self.detector_dataset,
                                  validation_dataset=self.detector_validation_dataset)
-        print("[INFO] Face Detector training completed.")
+        Logger.log("[INFO] Face Detector training completed.")
         #############
 
         # Save the trained detector model
         torch.save(self.face_detector.state_dict(), f"{Parameters.PATH_FACIAL_DETECTOR}")
-        print(f"[INFO] Face Detector model saved to {Parameters.PATH_FACIAL_DETECTOR}.")
+        Logger.log(f"[INFO] Face Detector model saved to {Parameters.PATH_FACIAL_DETECTOR}.")
 
-        print("[INFO] Reloading models...")
+        Logger.log("[INFO] Reloading models...")
         self.load_models()
-        print("[INFO] Detector training pipeline finished successfully.")
+        Logger.log("[INFO] Detector training pipeline finished successfully.")
 
     def train_recognizer(self):
-        print("[INFO] Preparing data for Face Recognizer training...")
+        Logger.log("[INFO] Preparing data for Face Recognizer training...")
         positives = [os.path.join(Parameters.PATH_POSITIVE_SAMPLES, p) for p in os.listdir(Parameters.PATH_POSITIVE_SAMPLES)]
 
-        print(f"[INFO] Training Face Recognizer with {len(positives)} faces.")
+        Logger.log(f"[INFO] Training Face Recognizer with {len(positives)} faces.")
 
         ### Recognizer Dataset ###
         daphne = [p for p in positives if "daphne" in p]
@@ -71,7 +69,7 @@ class SDNet:
         velma = [p for p in positives if "velma" in p]
         unknown = [p for p in positives if "unknown" in p]
 
-        print(f"[INFO] Dataset distribution: Daphne: {len(daphne)}, Fred: {len(fred)}, Shaggy: {len(shaggy)}, Velma: {len(velma)}, Unknown: {len(unknown)}")
+        Logger.log(f"[INFO] Dataset distribution: Daphne: {len(daphne)}, Fred: {len(fred)}, Shaggy: {len(shaggy)}, Velma: {len(velma)}, Unknown: {len(unknown)}")
 
         dataset = [(path, self.labels_map["daphne"]) for path in daphne] + \
                 [(path, self.labels_map["fred"]) for path in fred] + \
@@ -83,27 +81,27 @@ class SDNet:
         train_dataset = FaceRecognitionImageDataset(train, augment=True)
         validation_dataset = FaceRecognitionImageDataset(validation, augment=False)
 
-        print("[INFO] Starting Face Recognizer training loop (fit)...")
+        Logger.log("[INFO] Starting Face Recognizer training loop (fit)...")
         self.face_recognizer.fit(train_dataset=train_dataset, validation_dataset=validation_dataset)
-        print("[INFO] Face Recognizer training completed.")
+        Logger.log("[INFO] Face Recognizer training completed.")
         ###############
 
         # Save the trained recognizer model
         torch.save(self.face_recognizer.state_dict(), f"{Parameters.PATH_FACIAL_RECOGNITION}")
-        print(f"[INFO] Face Recognizer model saved to {Parameters.PATH_FACIAL_RECOGNITION}.")
+        Logger.log(f"[INFO] Face Recognizer model saved to {Parameters.PATH_FACIAL_RECOGNITION}.")
 
-        print("[INFO] Reloading models...")
+        Logger.log("[INFO] Reloading models...")
         self.load_models()
-        print("[INFO] Recognizer training pipeline finished successfully.")        
+        Logger.log("[INFO] Recognizer training pipeline finished successfully.")
 
     def train(self):
-        print("[INFO] Starting full training pipeline...")
+        Logger.log("[INFO] Starting full training pipeline...")
         # Move collected samples to training folders
-        print("[INFO] Checking for collected samples...")
+        Logger.log("[INFO] Checking for collected samples...")
         Utilities.move_collected_samples()
 
         if len(os.listdir(f"{Parameters.PATH_POSITIVE_SAMPLES}")) == 0 or len(os.listdir(f"{Parameters.PATH_NEGATIVE_SAMPLES}")) == 0:
-            print("[INFO] No samples found in positives/negatives. Running samples_extractor.py...")
+            Logger.log("[INFO] No samples found in positives/negatives. Running samples_extractor.py...")
             subprocess.run(
                 [sys.executable, "-u", "./SDNet/samples_extractor.py"],
                 cwd=os.getcwd(),
@@ -111,20 +109,20 @@ class SDNet:
             )
 
         # Train initial detector
-        print("[INFO] Step 1: Training initial detector...")
+        Logger.log("[INFO] Step 1: Training initial detector...")
         self.train_detector()
 
         # Mine hard negatives
-        print("[INFO] Step 2: Mining hard negatives...")
+        Logger.log("[INFO] Step 2: Mining hard negatives...")
         miner = HardNegativeMiner(self.face_detector)
         miner.mine_hard_negatives()
 
         # Retrain detector with new hard negatives
-        print("[INFO] Step 3: Retraining detector with hard negatives...")
+        Logger.log("[INFO] Step 3: Retraining detector with hard negatives...")
         self.train_detector()
 
         # Train recognizer
-        print("[INFO] Step 4: Training recognizer...")
+        Logger.log("[INFO] Step 4: Training recognizer...")
         self.train_recognizer()
 
     def evaluate(self):

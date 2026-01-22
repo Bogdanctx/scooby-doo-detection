@@ -1,20 +1,36 @@
-import io
-import base64
 import os
-import time
 import sys
-import uuid
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "SDNet"))
 
+import asyncio
 import numpy as np
-from fastapi import FastAPI, File, UploadFile
+import io
+import base64
+import uuid
+from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from SDNet.scooby_doo_network import SDNet
 from PIL import Image
-
+from Logger import Logger
 from pydantic import BaseModel
+
+def image_to_base64(image_obj):
+    """Helper to convert PIL Image or Numpy array to Base64 string"""
+    # If it is a numpy array (OpenCV format), convert to PIL first
+    if isinstance(image_obj, np.ndarray):
+        image_obj = Image.fromarray(image_obj)
+        
+    img_byte_arr = io.BytesIO()
+    image_obj.save(img_byte_arr, format='PNG')
+
+    # Convert to Base64
+    raw_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+
+    # return the base64 string
+    return raw_base64
 
 class FeedbackData(BaseModel):
     image_base64: str
@@ -36,20 +52,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def image_to_base64(image_obj):
-    """Helper to convert PIL Image or Numpy array to Base64 string"""
-    # If it is a numpy array (OpenCV format), convert to PIL first
-    if isinstance(image_obj, np.ndarray):
-        image_obj = Image.fromarray(image_obj)
-        
-    img_byte_arr = io.BytesIO()
-    image_obj.save(img_byte_arr, format='PNG')
-
-    # Convert to Base64
-    raw_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
-
-    # return the base64 string
-    return raw_base64
 
 @app.post("/api/detect")
 async def detect_characters(image: UploadFile):
@@ -75,35 +77,40 @@ async def detect_characters(image: UploadFile):
             "recognition_score": patch["recognition_score"]
         })
 
-    return response_data
+    return JSONResponse(status_code=status.HTTP_200_OK,
+                        content=response_data)
 
 @app.post("/api/retrain/full")
 async def retrain_models():
     try:
         sdnet.train_detector()
         sdnet.train_recognizer()
-        return {"status": "success", "message": "Full model retraining initiated."}
+        return JSONResponse(status_code=status.HTTP_200_OK,
+                            content={"status": "success", "message": "Full model retraining initiated."})
     except Exception as e:
-        print(f"Error during full model retraining: {e}")
-        return {"status": "error", "message": str(e)}
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            content={"status": "error", "message": str(e)})
+
 
 @app.post("/api/retrain/detection")
 async def retrain_detection_model():
     try:
         sdnet.train_detector()
-        return {"status": "success", "message": "Detection model retraining initiated."}
+        return JSONResponse(status_code=status.HTTP_200_OK,
+                            content={"status": "success", "message": "Detection model retraining initiated."})
     except Exception as e:
-        print(f"Error during detection model retraining: {e}")
-        return {"status": "error", "message": str(e)}
-    
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            content={"status": "error", "message": str(e)})
+
 @app.post("/api/retrain/recognition")
 async def retrain_recognition_model():
     try:
         sdnet.train_recognizer()
-        return {"status": "success", "message": "Recognition model retraining initiated."}
+        return JSONResponse(status_code=status.HTTP_200_OK,
+                            content={"status": "success", "message": "Recognition model retraining initiated."})
     except Exception as e:
-        print(f"Error during recognition model retraining: {e}")
-        return {"status": "error", "message": str(e)}
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            content={"status": "error", "message": str(e)})
 
 
 @app.post("/api/feedback")
@@ -126,12 +133,41 @@ async def save_feedback(data: FeedbackData):
 
         image.save(file_path, "PNG")
 
-        return {"status": "success", "message": f"Saved to {file_path}"}
+        return JSONResponse(status_code=status.HTTP_200_OK,
+                            content={"status": "success", "message": f"Saved to {file_path}"})
 
     except Exception as e:
-        # Print error to console so you can debug if it fails
-        print(f"Error saving feedback: {e}")
-        return {"status": "error", "message": str(e)}
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            content={"status": "error", "message": str(e)})
+    
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        with open(Logger.LOG_FILE, "r") as f:
+            # Move to the end of the file
+            f.seek(0, os.SEEK_END)
+            while True:
+                line = f.readline()
+                
+                if line:
+                    await websocket.send_text(line.strip())
+                else:
+                    current_pos = f.tell()
+                    file_size = os.stat(Logger.LOG_FILE).st_size
+
+                    if file_size < current_pos:
+                        # File was truncated, seek to beginning
+                        f.seek(0)
+                    else:
+                        await asyncio.sleep(0.2)
+    except WebSocketDisconnect:
+        print("Client disconnected")
+    
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+
+
 
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 

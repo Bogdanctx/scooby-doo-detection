@@ -1,0 +1,102 @@
+/* DevActions.style.css */
+
+#dev-actions {
+    padding: 2rem 0;
+    width: 100%;
+    margin-top: 3rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Center the Main Title */
+#dev-actions-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #334155;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Container for Buttons + Shell */
+#dev-actions-content {
+    display: flex;
+    justify-content: center; /* Centers the whole group */
+    align-items: flex-start; /* Aligns them at the top */
+    gap: 2rem; /* Space between buttons and shell */
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Button Column */
+#dev-actions-buttons {
+    display: flex;
+    flex-direction: column; /* Stacks buttons vertically */
+    gap: 1rem;
+    width: 220px; /* Fixed width for consistency */
+    padding-top: 0.5rem; /* Slight alignment adjustment */
+}
+
+/* Override MUI Button styles for a cleaner look */
+.retrain-button {
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+    justify-content: flex-start !important;
+    background-color: white;
+    transition: all 0.2s ease !important;
+}
+
+.retrain-button:hover {
+    background-color: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    transform: translateX(4px); /* Subtle hover movement */
+}
+
+/* Shell Logs Container */
+#dev-actions-logs {
+    flex-grow: 0;
+    flex-shrink: 0;
+    width: 600px; /* Fixed width for the terminal */
+}
+
+/* The Terminal 'Paper' Look */
+#dev-actions-logs-paper {
+    background-color: #1e293b !important; /* Dark Slate */
+    color: #4ade80 !important; /* Terminal Green */
+    font-family: 'Courier New', Courier, monospace;
+    padding: 1.5rem;
+    height: 300px;
+    overflow-y: auto; /* Scroll if too many logs */
+    border-radius: 8px !important;
+    border: 1px solid #334155;
+    box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.5) !important;
+}
+
+#dev-actions-logs-title {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+}
+
+/* Scrollbar styling for the terminal */
+#dev-actions-logs-paper::-webkit-scrollbar {
+    width: 8px;
+}
+
+#dev-actions-logs-paper::-webkit-scrollbar-track {
+    background: #0f172a; 
+}
+
+#dev-actions-logs-paper::-webkit-scrollbar-thumb {
+    background: #475569; 
+    border-radius: 4px;
+}
