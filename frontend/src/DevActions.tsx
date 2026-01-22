@@ -6,7 +6,7 @@ import './DevActions.style.css';
 export default function DevActions(props: { messages: string[] }) {
     const [isRetraining, setIsRetraining] = useState<boolean>(false);
 
-    const handleRetrainModels = async (mode: 'full' | 'detection' | 'recognition') => {
+    const handleRetrainModels = async (mode: 'both' | 'detector' | 'recognizer') => {
         try {
             setIsRetraining(true);
             await axios.post(`http://localhost:8000/api/retrain/${mode}`);
@@ -27,15 +27,15 @@ export default function DevActions(props: { messages: string[] }) {
                     <Button 
                         variant="outlined"
                         className='retrain-button' 
-                        onClick={() => handleRetrainModels('full')} 
+                        onClick={() => handleRetrainModels('both')} 
                         disabled={isRetraining}
                     >
-                        Retrain Full Model
+                        Retrain Both Models
                     </Button>
                     <Button 
                         variant="outlined"
                         className='retrain-button' 
-                        onClick={() => handleRetrainModels('detection')} 
+                        onClick={() => handleRetrainModels('detector')} 
                         disabled={isRetraining}
                     >
                         Retrain Detection Model
@@ -43,7 +43,7 @@ export default function DevActions(props: { messages: string[] }) {
                     <Button 
                         variant="outlined"
                         className='retrain-button' 
-                        onClick={() => handleRetrainModels('recognition')} 
+                        onClick={() => handleRetrainModels('recognizer')} 
                         disabled={isRetraining}
                     >
                         Retrain Recognition Model

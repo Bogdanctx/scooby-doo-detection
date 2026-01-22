@@ -69,7 +69,7 @@ const CharacterCard = ({ patch }: { patch: Patch }) => {
                 
                 {viewState === 'saved' && (
                     <Typography variant="body2" sx={{ color: 'green', fontWeight: 'bold', mt: 2 }}>
-                        Thank you for your feedback!
+                        Thank you for feedback!
                     </Typography>
                 )}
             </CardContent>
@@ -87,7 +87,7 @@ const CharacterCard = ({ patch }: { patch: Patch }) => {
                                     size="small" 
                                     variant="contained" 
                                     color="success" 
-                                    onClick={() => sendFeedback(patch.name)}
+                                    onClick={() => setViewState('saved')}
                                     sx={{ textTransform: 'none', bgcolor: '#dcfce7', color: '#15803d', '&:hover': { bgcolor: '#bbf7d0' } }}
                                 >
                                     Yes

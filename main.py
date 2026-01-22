@@ -1,6 +1,8 @@
 import os
 import sys
 
+from torch import mode
+
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "SDNet"))
 
 import asyncio
@@ -8,6 +10,7 @@ import numpy as np
 import io
 import base64
 import uuid
+from starlette.concurrency import run_in_threadpool
 from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -80,34 +83,18 @@ async def detect_characters(image: UploadFile):
     return JSONResponse(status_code=status.HTTP_200_OK,
                         content=response_data)
 
-@app.post("/api/retrain/full")
-async def retrain_models():
+@app.post("/api/retrain/{model}")
+async def retrain_models(model: str):
     try:
-        sdnet.train_detector()
-        sdnet.train_recognizer()
+        if model == "both":
+            await run_in_threadpool(sdnet.train)
+        elif model == "detector":
+            await run_in_threadpool(sdnet.train_detector)
+        elif model == "recognizer":
+            await run_in_threadpool(sdnet.train_recognizer)
+
         return JSONResponse(status_code=status.HTTP_200_OK,
                             content={"status": "success", "message": "Full model retraining initiated."})
-    except Exception as e:
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            content={"status": "error", "message": str(e)})
-
-
-@app.post("/api/retrain/detection")
-async def retrain_detection_model():
-    try:
-        sdnet.train_detector()
-        return JSONResponse(status_code=status.HTTP_200_OK,
-                            content={"status": "success", "message": "Detection model retraining initiated."})
-    except Exception as e:
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            content={"status": "error", "message": str(e)})
-
-@app.post("/api/retrain/recognition")
-async def retrain_recognition_model():
-    try:
-        sdnet.train_recognizer()
-        return JSONResponse(status_code=status.HTTP_200_OK,
-                            content={"status": "success", "message": "Recognition model retraining initiated."})
     except Exception as e:
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             content={"status": "error", "message": str(e)})
@@ -144,33 +131,34 @@ async def save_feedback(data: FeedbackData):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
+        # Open in read mode
         with open(Logger.LOG_FILE, "r") as f:
-            # Move to the end of the file
-            f.seek(0, os.SEEK_END)
+            # REMOVED: f.seek(0, os.SEEK_END) 
+            # We want to read from the start so the user sees history
+            
             while True:
                 line = f.readline()
                 
                 if line:
                     await websocket.send_text(line.strip())
                 else:
-                    current_pos = f.tell()
-                    file_size = os.stat(Logger.LOG_FILE).st_size
-
-                    if file_size < current_pos:
-                        # File was truncated, seek to beginning
+                    # Check if file was truncated (cleared)
+                    if os.stat(Logger.LOG_FILE).st_size < f.tell():
                         f.seek(0)
                     else:
-                        await asyncio.sleep(0.2)
+                        # Wait for new logs to be written
+                        await asyncio.sleep(0.1)
+                        
     except WebSocketDisconnect:
         print("Client disconnected")
-    
     except Exception as e:
         print(f"WebSocket error: {e}")
-
 
 
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 if __name__ == "__main__":
+    Logger.clear_log()
+
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
